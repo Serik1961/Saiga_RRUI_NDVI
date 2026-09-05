@@ -1,0 +1,28 @@
+# RStudio
+.Rproj.user/
+
+# R session files
+.Rhistory
+.RData
+.Ruserdata
+
+# renv local library and cache
+renv/library/
+renv/staging/
+renv/python/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Third-party GPS data
+data/raw/gps/*
+!data/raw/gps/README.md
+
+# Derived GPS spatial data
+data/intermediate/gps_routes_indyear.gpkg

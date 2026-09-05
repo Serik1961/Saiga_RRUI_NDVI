@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this code or data in your research, please cite this repository."
+title: "Ural Saiga RRUI-NDVI Analysis"
+type: software
+authors:
+  - family-names: "Jumabayev"
+    given-names: "Serik"
+year: 2026
+license: MIT
