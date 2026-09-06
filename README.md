@@ -1,10 +1,10 @@
 # Ural Saiga RRUI–NDVI Analysis
 
-This repository contains the reproducible R code used to analyse the relationship between spatial use by the Ural saiga population and vegetation dynamics in West Kazakhstan during 2012–2024.
+This repository contains the reproducible R code and analytical workflow used to examine the relationship between spatial use by the Ural saiga population and vegetation dynamics in West Kazakhstan during 2012–2024.
 
-The workflow integrates GPS-derived annual animal routes, MODIS NDVI, climate variables, and livestock data into a district-year panel. Spatial use is represented by the Relative Route Utilization Index (RRUI).
+The workflow integrates GPS-derived annual animal routes, MODIS NDVI, climate variables, and livestock data into a district-year panel. Spatial use is represented by the **Relative Route Utilization Index (RRUI)**.
 
-## Study design
+## Study Design
 
 The analysis covers five districts of West Kazakhstan Region:
 
@@ -14,9 +14,9 @@ The analysis covers five districts of West Kazakhstan Region:
 - Zhanakala
 - Zhanybek
 
-The study period is 2012–2024, producing a balanced panel of 65 district-year observations (5 districts × 13 years).
+The study period covers 2012–2024, producing a balanced panel of **65 district-year observations** (5 districts × 13 years).
 
-The GPS dataset contains 184 spatial route records. Records belonging to the same animal and year are merged using `IndYear`, resulting in 113 unique animal-year routes from 56 tracked animals.
+The GPS dataset contains **184 spatial route records**. Records belonging to the same animal and year are merged using `IndYear`, resulting in **113 unique animal-year routes from 56 tracked animals**.
 
 ## Relative Route Utilization Index (RRUI)
 
@@ -40,7 +40,7 @@ RRUI_{it} =
 
 where \(N_t\) is the number of tracked animal-year routes in year \(t\).
 
-RRUI therefore measures the average proportional use of each study district by tracked animals. It is a relative spatial-use index and should not be interpreted as population abundance or density.
+RRUI therefore measures the average proportional use of each study district by tracked animals. It is a **relative spatial-use index** and should not be interpreted as population abundance or density.
 
 By construction,
 
@@ -50,20 +50,22 @@ By construction,
 
 for every year.
 
-## Environmental and livestock data
+Consequently, changes in RRUI represent redistribution of relative spatial use among the five study districts rather than independent changes in absolute use intensity.
 
-Vegetation dynamics are represented by mean growing-season NDVI (April–October) derived from MODIS MOD13Q1 Version 6.1.
+## Environmental and Livestock Data
+
+Vegetation dynamics are represented by mean **April–October NDVI** derived from **MODIS MOD13Q1 Version 6.1**.
 
 Climate controls include:
 
 - April–October cumulative precipitation;
 - April–October mean air temperature.
 
-The final specification additionally includes district-level livestock pressure expressed in conditional livestock units.
+The final specification additionally includes district-level livestock pressure expressed in standardized livestock units.
 
-## Statistical analysis
+## Statistical Analysis
 
-The analysis uses two-way fixed-effects (TWFE) models with district and year fixed effects.
+The analysis uses **two-way fixed-effects (TWFE)** models with district and year fixed effects.
 
 Three nested specifications are estimated:
 
@@ -79,7 +81,9 @@ Because the analysis contains only five district clusters, small-cluster inferen
 - wild cluster bootstrap with Rademacher weights;
 - wild cluster bootstrap with Webb weights.
 
-## Repository structure
+The estimated RRUI coefficients are interpreted as **conditional associations rather than causal effects**.
+
+## Repository Structure
 
 ```text
 Saiga_RRUI_NDVI/
@@ -107,19 +111,28 @@ Saiga_RRUI_NDVI/
 │   ├── 20_final_diagnostics.R
 │   └── 99_run_all.R
 ├── data/
+│   ├── raw/
+│   ├── intermediate/
+│   └── processed/
 ├── results/
+│   ├── tables/
+│   └── diagnostics/
 ├── logs/
 ├── renv/
 ├── .Rprofile
+├── .gitignore
+├── CITATION.cff
+├── LICENSE
+├── README.md
 ├── renv.lock
 └── Saiga_RRUI_NDVI.Rproj
 ```
 
-## Reproducing the analysis
+## Reproducing the Analysis
 
-The analysis was developed using R 4.6.1.
+The analysis was developed and tested using **R 4.6.1**.
 
-Package versions are recorded in `renv.lock`.
+Exact package versions are recorded in `renv.lock`.
 
 After cloning or downloading the repository, open `Saiga_RRUI_NDVI.Rproj` and restore the R environment:
 
@@ -127,13 +140,29 @@ After cloning or downloading the repository, open `Saiga_RRUI_NDVI.Rproj` and re
 renv::restore()
 ```
 
-The complete analysis can then be reproduced with:
+### Required GPS Data
+
+The original Ural saiga GPS spatial files are **not redistributed through this repository**.
+
+Before running the complete workflow, obtain the required Ural saiga GPS dataset from the **Atlas of Ungulate Migration** and place the required files in:
+
+```text
+data/raw/gps/
+```
+
+The required filenames and additional instructions are provided in:
+
+```text
+data/raw/gps/README.md
+```
+
+After the GPS files have been added, the complete analysis can be reproduced with:
 
 ```r
 source("R/99_run_all.R")
 ```
 
-The master script sequentially executes all analysis scripts from data preprocessing through final statistical inference and diagnostics.
+The master script sequentially executes the complete analytical workflow, from GPS preprocessing and RRUI construction through panel assembly, statistical inference, and final diagnostics.
 
 ## Reproducibility
 
@@ -144,7 +173,7 @@ set.seed(12345)
 dqrng::dqset.seed(12345)
 ```
 
-The computational environment is recorded in:
+Information about the computational environment is recorded in:
 
 ```text
 logs/sessionInfo.txt
@@ -158,29 +187,10 @@ ALL SCRIPTS COMPLETED SUCCESSFULLY
 
 ## Outputs
 
-Processed analytical datasets are written to:
-
-```text
-data/processed/
-```
-
-Intermediate spatial and analytical files are written to:
-
-```text
-data/intermediate/
-```
-
-Statistical results are written to:
-
-```text
-results/tables/
-```
-
-Diagnostic outputs are written to:
-
-```text
-results/diagnostics/
-```
+- Processed analytical datasets: `data/processed/`
+- Intermediate spatial and analytical files: `data/intermediate/`
+- Statistical results: `results/tables/`
+- Diagnostic outputs: `results/diagnostics/`
 
 ## Software
 
@@ -201,23 +211,88 @@ The workflow uses R packages including:
 
 Exact package versions are recorded in `renv.lock`.
 
-## Data sources
+## Data Sources
 
-The analysis integrates:
+The analysis integrates GPS telemetry, administrative boundaries, satellite-derived vegetation and climate data, and official livestock statistics.
 
-- GPS telemetry of the Ural saiga population;
-- administrative district boundaries;
-- MODIS MOD13Q1.061 NDVI;
-- precipitation data;
-- air-temperature data;
-- official district-level livestock statistics.
+### GPS Telemetry
 
-Detailed data provenance, citations, and access information should accompany the public release of the repository.
+GPS-derived movement data for the Ural saiga population were obtained from the **Atlas of Ungulate Migration**, developed by the **Global Initiative on Ungulate Migration (GIUM)** under the **Convention on the Conservation of Migratory Species of Wild Animals (CMS)**.
+
+Population: **Saiga antelope: Ural, Kazakhstan**  
+Scientific name: *Saiga tatarica tatarica*
+
+Data providers:
+
+- Albert Salemgareyev — Altyn Dala Conservation Initiative and Association for the Conservation of Biodiversity of Kazakhstan (ACBK);
+- Steffen Zuther — Frankfurt Zoological Society.
+
+The original GPS spatial files are **not redistributed in this repository**. Instructions for obtaining and placing the required files are provided in `data/raw/gps/README.md`.
+
+Atlas of Ungulate Migration:  
+https://www.cms.int/gium/migration-atlas
+
+### Administrative Boundaries
+
+Administrative district boundaries were obtained from the **UNHCR GIS administrative boundary dataset for Kazakhstan (2023)**.
+
+UNHCR GIS services:  
+https://im.unhcr.org/geoservices/
+
+The boundary files used in the analysis are included in `data/raw/boundaries/`.
+
+### NDVI
+
+Vegetation dynamics were derived from **MODIS MOD13Q1 Version 6.1**, a 16-day vegetation-index product at 250 m spatial resolution.
+
+District-level mean NDVI for April–October was calculated using **Google Earth Engine**.
+
+MOD13Q1.061 dataset documentation:  
+https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD13Q1
+
+The derived district-year dataset used in the analysis is included in `data/raw/ndvi/`.
+
+### Precipitation
+
+Precipitation data were derived from the **Climate Hazards Group InfraRed Precipitation with Station data (CHIRPS)**.
+
+April–October precipitation totals were aggregated to the district-year level.
+
+The derived analytical dataset used in the workflow is included in `data/raw/climate/`.
+
+### Air Temperature
+
+Air temperature data were derived from **ERA5-Land**, produced by the **Copernicus Climate Change Service**.
+
+Mean April–October 2 m air temperature was aggregated to the district-year level.
+
+ERA5-Land DOI:  
+https://doi.org/10.24381/cds.e2161bac
+
+### Livestock Statistics
+
+District-level livestock data for 2012–2024 were compiled from official statistics of the **Bureau of National Statistics of the Republic of Kazakhstan**.
+
+Cattle, sheep and goats, and horses were converted to standardized livestock units for the analysis.
+
+The input dataset used by the reproducible workflow is included in `data/raw/livestock/`.
+
+### Data Redistribution
+
+Original Ural saiga GPS spatial files are excluded from this repository and must be obtained directly from the original data provider.
+
+The repository contains derived district-year analytical datasets required to reproduce the statistical models.
+
+Users should cite the original data providers and comply with the applicable terms of use and attribution requirements for each source.
 
 ## Citation
 
-Citation information for the associated article will be added after publication.
+Citation metadata for this repository are provided in `CITATION.cff`.
+
+Citation information for the associated research article will be added after publication.
 
 ## License
 
-License information will be added before the public release of the repository.
+The original code in this repository is released under the **MIT License**. See `LICENSE` for details.
+
+The MIT License applies to the original code developed for this repository. It does not supersede the licenses, terms of use, or attribution requirements of third-party datasets.
