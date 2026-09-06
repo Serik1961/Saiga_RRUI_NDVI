@@ -22,31 +22,31 @@ The GPS dataset contains **184 spatial route records**. Records belonging to the
 
 For animal \(j\), district \(i\), and year \(t\), the proportion of its annual route located within a district is calculated as
 
-\[
+$$
 p_{ijt} =
 \frac{L_{ijt}}
-{\sum_{i=1}^{5} L_{ijt}},
-\]
+{\sum_{i=1}^{5} L_{ijt}}
+$$
 
-where \(L_{ijt}\) is the length of the animal-year route within district \(i\).
+where $L_{ijt}$ is the length of the animal-year route within district $i$.
 
 RRUI is then calculated as
 
-\[
+$$
 RRUI_{it} =
 \frac{1}{N_t}
-\sum_{j=1}^{N_t} p_{ijt},
-\]
+\sum_{j=1}^{N_t} p_{ijt}
+$$
 
-where \(N_t\) is the number of tracked animal-year routes in year \(t\).
+where $N_t$ is the number of tracked animal-year routes in year $t$.
 
 RRUI therefore measures the average proportional use of each study district by tracked animals. It is a **relative spatial-use index** and should not be interpreted as population abundance or density.
 
 By construction,
 
-\[
+$$
 \sum_{i=1}^{5} RRUI_{it}=1
-\]
+$$
 
 for every year.
 
