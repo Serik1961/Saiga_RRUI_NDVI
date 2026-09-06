@@ -30,7 +30,7 @@ library(fixest)
 # ------------------------------------------------------------
 
 panel <- read_csv(
-  "data/processed/Panel_RRUI_NDVI_AprOct.csv",
+  "data/processed/Panel_RRUI_NDVI_MaySep.csv",
   show_col_types = FALSE
 ) %>%
   mutate(

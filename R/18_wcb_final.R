@@ -22,7 +22,7 @@ library(dqrng)
 # ------------------------------------------------------------
 
 panel <- read_csv(
-  "data/processed/Panel_RRUI_NDVI_Climate_Livestock_AprOct.csv",
+  "data/processed/Panel_RRUI_NDVI_MaySep_Climate_AprOct_Livestock.csv",
   show_col_types = FALSE
 )
 

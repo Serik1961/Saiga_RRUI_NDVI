@@ -29,7 +29,7 @@ library(openxlsx)
 # ------------------------------------------------------------
 
 panel <- read_csv(
-  "data/processed/Panel_RRUI_NDVI_Climate_AprOct.csv",
+  "data/processed/Panel_RRUI_NDVI_MaySep_Climate_AprOct.csv",
   show_col_types = FALSE
 ) %>%
   mutate(

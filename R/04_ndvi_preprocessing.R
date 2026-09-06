@@ -1,7 +1,7 @@
 # ============================================================
 # SAIGA RRUI–NDVI PROJECT
 # 04_ndvi_preprocessing.R
-# NDVI April–October, 2012–2024
+# # NDVI May–September, 2012–2024
 # ============================================================
 
 library(dplyr)

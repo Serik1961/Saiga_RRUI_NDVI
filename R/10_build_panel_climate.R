@@ -5,7 +5,9 @@
 # Merge:
 # RRUI + NDVI + climate
 #
-# Period: 2012–2024
+# NDVI period: May–September
+# Climate period: April–October
+# Study period: 2012–2024
 # 5 districts × 13 years = 65 observations
 # ============================================================
 
@@ -21,10 +23,11 @@ library(openxlsx)
 
 # ------------------------------------------------------------
 # 2. Read RRUI–NDVI panel
+# NDVI: May–September
 # ------------------------------------------------------------
 
 panel <- read_csv(
-  "data/processed/Panel_RRUI_NDVI_AprOct.csv",
+  "data/processed/Panel_RRUI_NDVI_MaySep.csv",
   show_col_types = FALSE
 ) %>%
   mutate(
@@ -35,6 +38,7 @@ panel <- read_csv(
 
 # ------------------------------------------------------------
 # 3. Read climate data
+# Climate: April–October
 # ------------------------------------------------------------
 
 climate <- read_csv(
@@ -221,34 +225,53 @@ cat(
 
 # ------------------------------------------------------------
 # 12. Save processed panel
+#
+# Filename explicitly records both seasonal windows:
+# NDVI = May–September
+# Climate = April–October
 # ------------------------------------------------------------
+
+output_csv <-
+  "data/processed/Panel_RRUI_NDVI_MaySep_Climate_AprOct.csv"
+
+output_xlsx <-
+  "data/processed/Panel_RRUI_NDVI_MaySep_Climate_AprOct.xlsx"
 
 write_csv(
   panel_climate,
-  "data/processed/Panel_RRUI_NDVI_Climate_AprOct.csv"
+  output_csv
 )
 
 write.xlsx(
   panel_climate,
-  "data/processed/Panel_RRUI_NDVI_Climate_AprOct.xlsx",
+  output_xlsx,
   overwrite = TRUE
 )
 
+
+# ------------------------------------------------------------
+# 13. Check saved files
+# ------------------------------------------------------------
 
 cat("\n===== FILES SAVED =====\n")
 
 cat(
   "CSV:",
-  file.exists(
-    "data/processed/Panel_RRUI_NDVI_Climate_AprOct.csv"
-  ),
+  file.exists(output_csv),
   "\n"
 )
 
 cat(
   "XLSX:",
-  file.exists(
-    "data/processed/Panel_RRUI_NDVI_Climate_AprOct.xlsx"
-  ),
+  file.exists(output_xlsx),
   "\n"
+)
+
+stopifnot(
+  file.exists(output_csv),
+  file.exists(output_xlsx)
+)
+
+cat(
+  "\n10_build_panel_climate.R completed successfully.\n"
 )

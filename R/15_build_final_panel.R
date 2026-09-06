@@ -5,7 +5,9 @@
 # Final analytical panel:
 # RRUI + NDVI + climate + livestock
 #
-# 2012–2024
+# NDVI period: May–September
+# Climate period: April–October
+# Study period: 2012–2024
 # 5 districts × 13 years = 65 observations
 # ============================================================
 
@@ -22,10 +24,13 @@ library(openxlsx)
 
 # ------------------------------------------------------------
 # 2. Read RRUI + NDVI + climate panel
+#
+# NDVI: May–September
+# Climate: April–October
 # ------------------------------------------------------------
 
 panel <- read_csv(
-  "data/processed/Panel_RRUI_NDVI_Climate_AprOct.csv",
+  "data/processed/Panel_RRUI_NDVI_MaySep_Climate_AprOct.csv",
   show_col_types = FALSE
 ) %>%
   mutate(
@@ -183,7 +188,11 @@ final_panel <- panel %>%
 
 cat("\n===== FINAL PANEL =====\n")
 
-cat("Rows:", nrow(final_panel), "\n")
+cat(
+  "Rows:",
+  nrow(final_panel),
+  "\n"
+)
 
 cat(
   "Districts:",
@@ -239,6 +248,7 @@ duplicates <- final_panel %>%
   filter(n > 1)
 
 cat("\n===== DUPLICATES =====\n")
+
 print(duplicates)
 
 
@@ -267,16 +277,25 @@ cat(
 
 # ------------------------------------------------------------
 # 16. Save final panel
+#
+# NDVI = May–September
+# Climate = April–October
 # ------------------------------------------------------------
+
+output_csv <-
+  "data/processed/Panel_RRUI_NDVI_MaySep_Climate_AprOct_Livestock.csv"
+
+output_xlsx <-
+  "data/processed/Panel_RRUI_NDVI_MaySep_Climate_AprOct_Livestock.xlsx"
 
 write_csv(
   final_panel,
-  "data/processed/Panel_RRUI_NDVI_Climate_Livestock_AprOct.csv"
+  output_csv
 )
 
 write.xlsx(
   final_panel,
-  "data/processed/Panel_RRUI_NDVI_Climate_Livestock_AprOct.xlsx",
+  output_xlsx,
   overwrite = TRUE
 )
 
@@ -289,16 +308,21 @@ cat("\n===== FILES SAVED =====\n")
 
 cat(
   "CSV:",
-  file.exists(
-    "data/processed/Panel_RRUI_NDVI_Climate_Livestock_AprOct.csv"
-  ),
+  file.exists(output_csv),
   "\n"
 )
 
 cat(
   "XLSX:",
-  file.exists(
-    "data/processed/Panel_RRUI_NDVI_Climate_Livestock_AprOct.xlsx"
-  ),
+  file.exists(output_xlsx),
   "\n"
+)
+
+stopifnot(
+  file.exists(output_csv),
+  file.exists(output_xlsx)
+)
+
+cat(
+  "\n15_build_final_panel.R completed successfully.\n"
 )

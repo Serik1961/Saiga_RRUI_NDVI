@@ -2,6 +2,8 @@
 # SAIGA RRUI–NDVI PROJECT
 # 05_build_panel.R
 # Merge RRUI and NDVI panel
+#
+# NDVI growing season: May–September
 # ============================================================
 
 library(dplyr)
@@ -23,8 +25,14 @@ rrui <- read_csv(
 
 
 # ------------------------------------------------------------
-# 2. Чтение NDVI April–October
+# 2. Чтение NDVI May–September
 # ------------------------------------------------------------
+
+# NOTE:
+# The legacy source filename contains "_okt", but the values
+# were generated in Google Earth Engine for 1 May–30 September.
+# The filename is retained to preserve provenance of the
+# original exported dataset used in the analysis.
 
 ndvi <- read_csv(
   "data/raw/ndvi/Saiga_NDVI_MOD13Q1_2012_2024_okt.csv",
@@ -147,25 +155,37 @@ cat("\nBase RRUI-NDVI panel validated successfully.\n")
 
 write_csv(
   panel,
-  "data/processed/Panel_RRUI_NDVI_AprOct.csv"
+  "data/processed/Panel_RRUI_NDVI_MaySep.csv"
 )
 
 write.xlsx(
   panel,
-  "data/processed/Panel_RRUI_NDVI_AprOct.xlsx",
+  "data/processed/Panel_RRUI_NDVI_MaySep.xlsx",
   overwrite = TRUE
 )
+
+
+# ------------------------------------------------------------
+# 10. Проверка сохранения
+# ------------------------------------------------------------
 
 cat("\n===== PANEL FILES SAVED =====\n")
 
 cat(
   "CSV:",
-  file.exists("data/processed/Panel_RRUI_NDVI_AprOct.csv"),
+  file.exists("data/processed/Panel_RRUI_NDVI_MaySep.csv"),
   "\n"
 )
 
 cat(
   "XLSX:",
-  file.exists("data/processed/Panel_RRUI_NDVI_AprOct.xlsx"),
+  file.exists("data/processed/Panel_RRUI_NDVI_MaySep.xlsx"),
   "\n"
 )
+
+stopifnot(
+  file.exists("data/processed/Panel_RRUI_NDVI_MaySep.csv"),
+  file.exists("data/processed/Panel_RRUI_NDVI_MaySep.xlsx")
+)
+
+cat("\n05_build_panel.R completed successfully.\n")
