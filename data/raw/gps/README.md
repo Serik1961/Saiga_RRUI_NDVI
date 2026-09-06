@@ -27,4 +27,4 @@ Kazakhstan_Saiga_Ural_Routes.prj
 Kazakhstan_Saiga_Ural_Ranges.shp
 Kazakhstan_Saiga_Ural_Ranges.shx
 Kazakhstan_Saiga_Ural_Ranges.dbf
-Kazakhstan_Saiga_Ural_Ranges.prjreadLines(".gitignore")
+Kazakhstan_Saiga_Ural_Ranges.prj 
