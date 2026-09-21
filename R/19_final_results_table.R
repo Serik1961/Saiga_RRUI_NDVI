@@ -1,396 +1,107 @@
 # ============================================================
-# SAIGA RRUI–NDVI PROJECT
-# 19_final_results_table.R
+# SAIGA RRUI-NDVI PROJECT
+# 19_final_results_table.R   (rewritten in v1.3.1)
 #
-# Consolidated results table
-# Baseline -> Climate -> Climate + Livestock
-# Clustered SE + CR2 + WCB
+# Assembles the article tables for the RRUI coefficient (M1-M3) from the
+# result files written by scripts 07, 08, 11-13, 16-18.
+# v1.3.0 contained hard-coded, hand-typed values; every number below is now
+# read from a results file, so re-running the pipeline updates the tables.
 # ============================================================
 
 library(dplyr)
 library(readr)
 library(openxlsx)
 
+tab <- "results/tables/"
 
-# ------------------------------------------------------------
-# 1. Final RRUI results
-# ------------------------------------------------------------
+rd <- function(f) read_csv(file.path(tab, f), show_col_types = FALSE)
 
-results <- data.frame(
-  
-  Model = c(
-    "Baseline",
-    "Baseline",
-    "Baseline",
-    "Baseline",
-    
-    "Climate",
-    "Climate",
-    "Climate",
-    "Climate",
-    
-    "Climate + livestock",
-    "Climate + livestock",
-    "Climate + livestock",
-    "Climate + livestock"
-  ),
-  
-  Inference = c(
-    "Clustered",
-    "CR2",
-    "WCB Rademacher",
-    "WCB Webb",
-    
-    "Clustered",
-    "CR2",
-    "WCB Rademacher",
-    "WCB Webb",
-    
-    "Clustered",
-    "CR2",
-    "WCB Rademacher",
-    "WCB Webb"
-  ),
-  
-  Beta_RRUI = c(
-    -0.01839590,
-    -0.01839590,
-    -0.01839590,
-    -0.01839590,
-    
-    -0.01626098,
-    -0.01626098,
-    -0.01626098,
-    -0.01626098,
-    
-    -0.01791425,
-    -0.01791425,
-    -0.01791425,
-    -0.01791425
-  ),
-  
-  SE = c(
-    0.01110761,
-    0.0101,
-    NA,
-    NA,
-    
-    0.008922566,
-    0.00915,
-    NA,
-    NA,
-    
-    0.010618058,
-    0.018852245,
-    NA,
-    NA
-  ),
-  
-  P_value = c(
-    0.1730322,
-    0.258,
-    0.1875,
-    0.2042,
-    
-    0.1424702,
-    0.326,
-    0.0625,
-    0.1083108,
-    
-    0.1668497,
-    0.5162379,
-    0.0625,
-    0.1194119
-  ),
-  
-  CI_lower = c(
-    -0.04923556,
-    NA,
-    -0.08442475,
-    -0.0984,
-    
-    NA,
-    NA,
-    -0.07638674,
-    -0.07432589,
-    
-    NA,
-    NA,
-    -0.04805527,
-    -0.05846618
-  ),
-  
-  CI_upper = c(
-    0.01244376,
-    NA,
-    0.01554846,
-    0.0168,
-    
-    NA,
-    NA,
-    0.007041601,
-    0.006831563,
-    
-    NA,
-    NA,
-    0.005300286,
-    0.005885138
-  ),
-  
-  N = 65,
-  
-  Clusters = 5
+specs <- tibble::tribble(
+  ~Model,                ~Specification,               ~twfe,                          ~cr2,                     ~wcb,
+  "Baseline",            "RRUI",                       "11_baseline_twfe_clustered.csv", "07_baseline_CR2.csv",  "08_baseline_WCB.csv",
+  "Climate",             "RRUI + climate",             "11_climate_twfe_clustered.csv",  "12_climate_CR2.csv",   "13_climate_WCB.csv",
+  "Climate + livestock", "RRUI + climate + livestock", "16_final_twfe_clustered.csv",    "17_final_CR2.csv",     "18_final_WCB.csv"
 )
 
+row_for <- function(i) {
+  s   <- specs[i, ]
+  tw  <- rd(s$twfe) %>% filter(Variable == "RRUI")
+  cr  <- rd(s$cr2)  %>% filter(Variable == "RRUI")
+  wb  <- rd(s$wcb)
+  rad <- wb %>% filter(grepl("Rademacher", Method))
+  web <- wb %>% filter(grepl("Webb", Method))
 
-# ------------------------------------------------------------
-# 2. Print
-# ------------------------------------------------------------
-
-cat("\n===== CONSOLIDATED RRUI RESULTS =====\n")
-
-print(
-  results,
-  row.names = FALSE
-)
-
-
-# ------------------------------------------------------------
-# 3. Compact article table
-# ------------------------------------------------------------
-
-article_table <- data.frame(
-  
-  Specification = c(
-    "RRUI",
-    "RRUI + climate",
-    "RRUI + climate + livestock"
-  ),
-  
-  Beta_RRUI = c(
-    -0.01839590,
-    -0.01626098,
-    -0.01791425
-  ),
-  
-  Clustered_SE = c(
-    0.01110761,
-    0.008922566,
-    0.010618058
-  ),
-  
-  Clustered_p = c(
-    0.1730322,
-    0.1424702,
-    0.1668497
-  ),
-  
-  CR2_p = c(
-    0.258,
-    0.326,
-    0.5162379
-  ),
-  
-  WCB_Rademacher_p = c(
-    0.1875,
-    0.0625,
-    0.0625
-  ),
-  
-  WCB_Webb_p = c(
-    0.2042,
-    0.1083108,
-    0.1194119
-  ),
-  
-  N = c(
-    65,
-    65,
-    65
-  ),
-  
-  Clusters = c(
-    5,
-    5,
-    5
+  tibble(
+    Model = s$Model,
+    Specification = s$Specification,
+    Beta_RRUI = tw$Estimate,
+    Clustered_SE = tw$`Std. Error`,
+    Clustered_p = tw$`Pr(>|t|)`,
+    CR2_SE = cr$SE,
+    CR2_df = cr$df_Satt,
+    CR2_p = cr$p_Satt,
+    WCB_Rademacher_p = rad$P_value,
+    WCB_Rademacher_p_strict = rad$P_value_strict,
+    WCB_Webb_p = web$P_value,
+    N = 65L,
+    Clusters = 5L
   )
-)
+}
 
+article <- bind_rows(lapply(seq_len(nrow(specs)), row_for))
 
-cat("\n===== ARTICLE TABLE =====\n")
-
-print(
-  article_table,
-  row.names = FALSE
-)
-
-
-# ------------------------------------------------------------
-# 4. Final model coefficients
-# ------------------------------------------------------------
-
-final_coefficients <- data.frame(
-  
-  Variable = c(
-    "RRUI",
-    "Precipitation",
-    "Temperature",
-    "Livestock units"
-  ),
-  
-  Estimate = c(
-    -0.01791425,
-    0.0006270414,
-    -0.05585412,
-    -0.00009970014
-  ),
-  
-  Clustered_SE = c(
-    0.010618058,
-    0.0002528048,
-    0.0101486915,
-    0.0002564033
-  ),
-  
-  Clustered_p = c(
-    0.1668497,
-    0.0681864,
-    0.0053156,
-    0.7172050
-  ),
-  
-  CR2_SE = c(
-    0.018852245,
-    0.002231333,
-    0.256391894,
-    0.000855344
-  ),
-  
-  CR2_p = c(
-    0.5162379,
-    0.8255973,
-    0.8634479,
-    0.9261280
+all_long <- bind_rows(lapply(seq_len(nrow(article)), function(i) {
+  a <- article[i, ]
+  tibble(
+    Model = a$Model,
+    Inference = c("Clustered (fixest CRV1)", "CR2 (Satterthwaite)",
+                  "WCB Rademacher (exact)", "WCB Webb (exact)"),
+    Beta_RRUI = a$Beta_RRUI,
+    SE = c(a$Clustered_SE, a$CR2_SE, NA, NA),
+    P_value = c(a$Clustered_p, a$CR2_p, a$WCB_Rademacher_p, a$WCB_Webb_p),
+    N = a$N,
+    Clusters = a$Clusters
   )
-)
+}))
 
+# Final-model coefficients (M3): clustered and CR2
+tw3 <- rd("16_final_twfe_clustered.csv")
+cr3 <- rd("17_final_CR2.csv")
+coefs <- tw3 %>%
+  transmute(
+    Variable = Variable,
+    Estimate = Estimate,
+    Clustered_SE = `Std. Error`,
+    Clustered_p = `Pr(>|t|)`
+  ) %>%
+  left_join(
+    cr3 %>% transmute(Variable, CR2_SE = SE, CR2_df = df_Satt, CR2_p = p_Satt),
+    by = "Variable"
+  )
 
-cat("\n===== FINAL MODEL COEFFICIENTS =====\n")
+wcb3 <- rd("18_final_WCB_all_coefficients.csv")
+coefs <- coefs %>%
+  left_join(
+    wcb3 %>% filter(grepl("Rademacher", Method)) %>% transmute(Variable, WCB_Rademacher_p = P_value),
+    by = "Variable"
+  ) %>%
+  left_join(
+    wcb3 %>% filter(grepl("Webb", Method)) %>% transmute(Variable, WCB_Webb_p = P_value),
+    by = "Variable"
+  )
 
-print(
-  final_coefficients,
-  row.names = FALSE
-)
-
-
-# ------------------------------------------------------------
-# 5. Save CSV files
-# ------------------------------------------------------------
-
-write_csv(
-  results,
-  "results/tables/19_all_RRUI_inference_results.csv"
-)
-
-write_csv(
-  article_table,
-  "results/tables/19_article_RRUI_table.csv"
-)
-
-write_csv(
-  final_coefficients,
-  "results/tables/19_final_model_coefficients.csv"
-)
-
-
-# ------------------------------------------------------------
-# 6. Save Excel workbook
-# ------------------------------------------------------------
+write_csv(article,  file.path(tab, "19_article_RRUI_table.csv"))
+write_csv(all_long, file.path(tab, "19_all_RRUI_inference_results.csv"))
+write_csv(coefs,    file.path(tab, "19_final_model_coefficients.csv"))
 
 wb <- createWorkbook()
+for (nm in c("Article_table", "All_inference", "Final_coefficients")) addWorksheet(wb, nm)
+writeData(wb, "Article_table", article)
+writeData(wb, "All_inference", all_long)
+writeData(wb, "Final_coefficients", coefs)
+saveWorkbook(wb, file.path(tab, "19_FINAL_RESULTS.xlsx"), overwrite = TRUE)
 
-
-addWorksheet(
-  wb,
-  "RRUI_all_inference"
-)
-
-writeData(
-  wb,
-  "RRUI_all_inference",
-  results
-)
-
-
-addWorksheet(
-  wb,
-  "Article_table"
-)
-
-writeData(
-  wb,
-  "Article_table",
-  article_table
-)
-
-
-addWorksheet(
-  wb,
-  "Final_coefficients"
-)
-
-writeData(
-  wb,
-  "Final_coefficients",
-  final_coefficients
-)
-
-
-saveWorkbook(
-  wb,
-  "results/tables/19_FINAL_RESULTS.xlsx",
-  overwrite = TRUE
-)
-
-
-# ------------------------------------------------------------
-# 7. Verify files
-# ------------------------------------------------------------
-
-cat("\n===== FILES SAVED =====\n")
-
-cat(
-  "All inference CSV:",
-  file.exists(
-    "results/tables/19_all_RRUI_inference_results.csv"
-  ),
-  "\n"
-)
-
-cat(
-  "Article table CSV:",
-  file.exists(
-    "results/tables/19_article_RRUI_table.csv"
-  ),
-  "\n"
-)
-
-cat(
-  "Final coefficients CSV:",
-  file.exists(
-    "results/tables/19_final_model_coefficients.csv"
-  ),
-  "\n"
-)
-
-cat(
-  "Final Excel:",
-  file.exists(
-    "results/tables/19_FINAL_RESULTS.xlsx"
-  ),
-  "\n"
-)
-
-cat(
-  "\nFinal results tables created successfully.\n"
-)
+cat("\n===== ARTICLE TABLE (Table 7) =====\n")
+print(as.data.frame(article), digits = 4)
+cat("\nSaved: 19_article_RRUI_table.csv, 19_all_RRUI_inference_results.csv,\n",
+    "       19_final_model_coefficients.csv, 19_FINAL_RESULTS.xlsx\n")

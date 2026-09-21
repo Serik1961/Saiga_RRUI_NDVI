@@ -59,10 +59,10 @@ climate <- read_csv(
 climate <- climate %>%
   mutate(
     ADM2_PCODE = case_when(
-      district == "Akzhaiyk" ~ "KAZ020001",
+      district == "Akzhaiyk" ~ "KAZ020001",  # GAUL spelling of Akzhaik
       district == "Urda"     ~ "KAZ020002",
       district == "Kaztalov" ~ "KAZ020005",
-      district == "Zhangala" ~ "KAZ020012",
+      district == "Zhangala" ~ "KAZ020012",  # = Zhanakala (see data/district_crosswalk.csv)
       district == "Zhanybek" ~ "KAZ020013",
       TRUE ~ NA_character_
     )

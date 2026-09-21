@@ -111,22 +111,18 @@ print(
 # 9. Подготовка года и названий переменных
 # ------------------------------------------------------------
 
+names(livestock_raw)[1:6] <- c(
+  "district", "Date", "cattle", "sheep_goats", "horses", "LU_file"
+)
+
 livestock <- livestock_raw %>%
   transmute(
-    district = район,
-    Year = as.integer(format(Дата, "%Y")),
-    
-    cattle_thousand =
-      as.numeric(`крупный рогатый скот`),
-    
-    sheep_goats_thousand =
-      as.numeric(`овцы и козы`),
-    
-    horses_thousand =
-      as.numeric(лошади),
-    
-    livestock_units_thousand =
-      as.numeric(`УсловГолов тыс. ед`)
+    district = as.character(district),
+    Year = as.integer(format(as.Date(Date), "%Y")),
+    cattle_thousand = as.numeric(cattle),
+    sheep_goats_thousand = as.numeric(sheep_goats),
+    horses_thousand = as.numeric(horses),
+    livestock_units_thousand = as.numeric(LU_file)
   )
 
 

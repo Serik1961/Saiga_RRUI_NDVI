@@ -1,0 +1,7 @@
+Independent verification of v1.3.0 and v1.3.1 (not the authors' environment)
+R 4.3.3 (Ubuntu 24.04, x86_64), fixest 0.14.2, clubSandwich 0.5.10,
+fwildclusterboot (CRAN mirror, used only to reproduce v1.3.0 output),
+readr, dplyr, tidyr, readxl, openxlsx from Ubuntu packages.
+Scripts 04-22 run without errors under LC_ALL=C (no UTF-8 locale) and
+22_selfcheck.R passes. Independent Python implementation of TWFE, CRV1, CR2
+(Satterthwaite) and exact wild cluster bootstrap agrees with the R output.

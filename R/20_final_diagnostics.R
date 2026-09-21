@@ -610,3 +610,26 @@ if (requireNamespace(
 cat("\n========================================\n")
 cat("FINAL DIAGNOSTICS COMPLETED SUCCESSFULLY\n")
 cat("========================================\n")
+
+
+# ------------------------------------------------------------
+# v1.3.1: diagnostic files previously produced only by the legacy analysis.R
+# ------------------------------------------------------------
+
+readr::write_csv(
+  dplyr::select(dplyr::filter(panel, RRUI == 0), Year, ADM2_PCODE),
+  "results/diagnostics/diagnostic_zero_district_years.csv"
+)
+
+readr::write_csv(
+  panel %>%
+    dplyr::group_by(ADM2_PCODE, ADM2_EN) %>%
+    dplyr::summarise(
+      Min  = min(Livestock_units),
+      Mean = mean(Livestock_units),
+      Max  = max(Livestock_units),
+      SD   = stats::sd(Livestock_units),
+      .groups = "drop"
+    ),
+  "results/diagnostics/20_livestock_by_district.csv"
+)

@@ -32,7 +32,12 @@ var precipByYear = ee.FeatureCollection(years.map(function(y) {
   y = ee.Number(y);
   var start = ee.Date.fromYMD(y, seasonStartMonth, 1);
   var end = ee.Date.fromYMD(y, seasonEndMonth, 31);
- 
+  // KNOWN LIMITATION (documented in v1.3.1): filterDate() EXCLUDES the end
+  // date, so daily CHIRPS is summed for 1 April - 30 October (213 of 214
+  // days; 31 October is not included). The shipped climate CSV was exported
+  // with this setting and the manuscript states it. To cover the whole
+  // April-October season use ee.Date.fromYMD(y, seasonEndMonth + 1, 1),
+  // re-export the CSV and re-run the R pipeline (change expected: < 0.5 mm).
   var seasonalSum = chirps.filterDate(start, end).sum();
  
   var stats = seasonalSum.reduceRegions({

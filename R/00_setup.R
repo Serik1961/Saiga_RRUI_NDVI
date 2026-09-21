@@ -1,8 +1,8 @@
 # ============================================================
-# SAIGA RRUI–NDVI PROJECT
+# SAIGA RRUI-NDVI PROJECT
 # 00_setup.R
 # Reproducible analysis environment
-# Developed with R 4.6.1
+# Developed with R 4.6.1; v1.3.1 needs no random numbers
 # ============================================================
 
 # R version
@@ -15,43 +15,24 @@ if (as.character(getRversion()) != required_r) {
   )
 }
 
-# Random seeds
+# v1.3.1: all inference (CR2, exact wild cluster bootstrap) is deterministic.
+# The seed is kept only for the optional GPS steps.
 RNG_SEED <- 12345
-
 set.seed(RNG_SEED)
 
-if (!requireNamespace("dqrng", quietly = TRUE)) {
-  stop(
-    "Package 'dqrng' is required. ",
-    "Restore the project environment with renv::restore()."
-  )
-}
-
-dqrng::dqset.seed(RNG_SEED)
-
 # Required packages
+# (fwildclusterboot, dqrng, ggplot2 and modelsummary are no longer used;
+#  sf is needed only when the GPS shapefiles are available, steps 01-03)
+gps_available <- file.exists("data/raw/gps/Kazakhstan_Saiga_Ural_Routes.shp")
+
 packages <- c(
-  "sf",
-  "dplyr",
-  "tidyr",
-  "readr",
-  "readxl",
-  "openxlsx",
-  "ggplot2",
-  "fixest",
-  "clubSandwich",
-  "fwildclusterboot",
-  "dqrng",
-  "modelsummary"
+  "dplyr", "tidyr", "tibble", "readr", "readxl", "openxlsx",
+  "fixest", "clubSandwich",
+  if (gps_available) "sf"
 )
 
 missing_packages <- packages[
-  !vapply(
-    packages,
-    requireNamespace,
-    quietly = TRUE,
-    FUN.VALUE = logical(1)
-  )
+  !vapply(packages, requireNamespace, quietly = TRUE, FUN.VALUE = logical(1))
 ]
 
 if (length(missing_packages) > 0) {
@@ -62,13 +43,7 @@ if (length(missing_packages) > 0) {
   )
 }
 
-invisible(
-  lapply(
-    packages,
-    library,
-    character.only = TRUE
-  )
-)
+invisible(lapply(packages, library, character.only = TRUE))
 
 # Required input directories
 required_input_dirs <- c(
@@ -80,9 +55,7 @@ required_input_dirs <- c(
   "data/raw/livestock"
 )
 
-missing_input_dirs <- required_input_dirs[
-  !dir.exists(required_input_dirs)
-]
+missing_input_dirs <- required_input_dirs[!dir.exists(required_input_dirs)]
 
 if (length(missing_input_dirs) > 0) {
   stop(
@@ -102,22 +75,14 @@ output_dirs <- c(
 )
 
 invisible(
-  lapply(
-    output_dirs,
-    dir.create,
-    recursive = TRUE,
-    showWarnings = FALSE
-  )
+  lapply(output_dirs, dir.create, recursive = TRUE, showWarnings = FALSE)
 )
 
 # Save session information
-capture.output(
-  sessionInfo(),
-  file = "logs/sessionInfo.txt"
-)
+capture.output(sessionInfo(), file = "logs/sessionInfo.txt")
 
 cat("\n========================================\n")
 cat("SAIGA project setup completed\n")
 cat("R version:", R.version.string, "\n")
-cat("Random seed:", RNG_SEED, "\n")
+cat("GPS shapefiles available:", gps_available, "\n")
 cat("========================================\n")

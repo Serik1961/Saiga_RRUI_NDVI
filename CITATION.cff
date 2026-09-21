@@ -28,7 +28,11 @@ authors:
   - family-names: "Begeyeva"
     given-names: "Mira"
 
-version: 1.3.0
-date-released: 2026-09-13
+version: 1.3.2
+date-released: 2026-09-21
 year: 2026
 license: MIT
+doi: "10.5281/zenodo.22741556"
+repository-code: "https://github.com/Serik1961/Saiga_RRUI_NDVI"
+url: "https://github.com/Serik1961/Saiga_RRUI_NDVI"
+# ORCID of each author can be added as: orcid: "https://orcid.org/0000-0000-0000-0000"

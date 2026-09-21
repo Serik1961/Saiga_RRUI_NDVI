@@ -1,110 +1,164 @@
-# Ural Saiga RRUI–NDVI Analysis — Version 1.3.0
+# Ural Saiga RRUI–NDVI Analysis — Version 1.3.2
 
-Changes from v1.2.0:
+Code and data for the analysis of the relationship between the Relative Route
+Use Index (RRUI) of Ural saiga and growing-season NDVI in five districts of
+West Kazakhstan (2012–2024, 5 districts × 13 years = 65 observations).
 
-1. **Wild cluster bootstrap now uses exact enumeration**, not Monte Carlo
-   sampling with B=9999. At G=5 clusters, both the Rademacher (2⁵=32) and
-   Webb (6⁵=7,776) weight spaces are small enough to enumerate fully, which
-   is both more efficient and exact rather than approximate. This also fixes
-   a floating-point comparison bug in the Monte Carlo version: the all-ones
-   weight vector exactly reproduces the original sample, so its bootstrap
-   statistic must tie the observed one, but ~1e-16 rounding could spuriously
-   exclude this tie; a small tolerance now handles this correctly.
-2. **WCB is now also computed for the CLR-scale M1–M3 models**, not only the
-   raw-scale M3 model — this was the single most important check missing
-   before submission. Result: Webb WCB (primary variant) is significant at
-   all three CLR specifications (p = 0.0249, 0.0152, 0.0054 for M1–M3, with
-   monotonic strengthening as covariates are added), while Rademacher
-   (secondary) is capped at its coarse resolution floor of 2/32 = 0.0625 for
-   all three — a mechanical property of only having 32 possible sign
-   combinations at G=5, not evidence against the effect, and part of why
-   Webb is designated primary.
-3. **Removed leftover dead code** at the end of Section 5e that still ran the
-   old arbitrary "top-7" Cook's-distance exclusion, even though this had
-   already been superseded by the formal three-threshold analysis in
-   Section 5d.
-4. **Placebo-test p-value now uses the standard finite-sample (add-one)
-   correction**, p = (1 + k) / (B+1) instead of the plain mean, where k is
-   the number of permutations at least as extreme as observed. This avoids
-   a p-value of exactly zero and reflects that the observed statistic is
-   itself one of the B+1 possible draws under the null. Result for the main
-   CLR specification: p = 0.0002 (previously reported as 0.0001 under the
-   uncorrected formula).
+## What changed in 1.3.2
 
-Changes from v1.1.0 (retained from v1.2.0):
+Maintenance release after an independent check of 1.3.1 (a clean run of
+`99_run_all.R` regenerates every shipped file without differences): a harmless
+`data.frame` warning in `wcb_exact()` was removed, the CHIRPS day count in the
+GEE note was corrected (213 of 214 days), and the projection-distortion
+estimate and the citation metadata were made more precise. No result changes.
 
-1. **CR2 (Satterthwaite) is now the primary inference procedure** throughout,
-   with conventional cluster-robust SEs reported as a secondary reference.
-2. **Placebo test strengthened**: 200 → 9999 replications, reporting an
-   explicit empirical p-value rather than only the maximum |t| under the null.
-3. **District-exclusion check corrected**: CLR is recomputed as a genuine
-   4-part composition on the remaining districts (re-closed to sum to 1),
-   rather than dropping rows from the already-computed 5-part CLR values.
-4. **Influence diagnostics generalized**: three formal Cook's-distance
-   thresholds (4/n, 4/(n−k−1), and the classical D > 1 cutoff) replace the
-   earlier arbitrary fixed "top-7" cutoff.
-5. **Table 13 (delta-sensitivity) expanded and corrected**: now reports CR2
-   SE and Satterthwaite df; its cluster-robust p-value column is fixed to
-   use `fixest` consistently (an earlier version mixed in `sandwich::vcovCL`,
-   giving a materially different and internally inconsistent p-value).
-6. **Diagnostic tables added**: which district-years have RRUI = 0, and
-   which observations are flagged as influential, are printed and saved to
-   `diagnostic_zero_district_years.csv` and
-   `diagnostic_influential_observations.csv`.
-7. Dropped the `wildboottest` Python-package dependency in favour of a pure-R
-   implementation of the wild cluster bootstrap (see `run_wcb()`).
+## What changed in 1.3.1 (corrections to 1.3.0)
 
-Changes from v1.0.1:
+An independent re-run of 1.3.0 (R 4.3.3, fixest 0.14.2, clubSandwich 0.5.10)
+reproduced every descriptive statistic, correlation, TWFE coefficient and
+cluster-robust p-value, but found four problems that changed reported numbers.
+The qualitative conclusion (no statistically supported RRUI–NDVI association)
+is unchanged.
 
-- **Livestock coefficient corrected**: sheep/goats now use the unadjusted
-  Eurostat LSU coefficient (0.1) instead of the earlier author-adjusted
-  value (0.2). This changed Table 3 (descriptive statistics), Tables 4–5
-  (correlations), and Tables 9–11 (final raw-scale model) relative to v1.0.1.
-- **Compositional (CLR) analysis** added (Section 2.6 / 3.6 of the
-  manuscript): RRUI is closed within each year (sums to 1 across the 5
-  districts); zeros (23% of observations) are replaced via multiplicative
-  simple replacement (`zCompositions::multRepl`, δ = 0.001) and the
-  composition is transformed with centered log-ratio (`compositions::clr`).
-  The three TWFE specifications are re-estimated on this scale (Table 12).
+1. **CR2 was computed incorrectly (scripts 07, 12, 17).**
+   `clubSandwich::vcovCR()` had been applied to a `fixest` object with absorbed
+   fixed effects. The absorbed effects were ignored in the leverage adjustment,
+   giving Satterthwaite df ≈ 1.00 and SEs of the controls inflated 9–25×.
+   CR2 is now computed on the explicit-dummy (LSDV) model
+   (`cr2_lsdv()` in `R/helpers_inference.R`), which is also what the legacy
+   `analysis.R` did. Corrected CR2 p-values: 0.226 / 0.248 / 0.279 (M1–M3).
+2. **Livestock units did not follow the manuscript (script 15).**
+   The panel used the ready-made LU column of the Excel file, which weights
+   sheep and goats by **0.2**; the manuscript states the unadjusted Eurostat LSU
+   coefficients (cattle 1.0, sheep/goats **0.1**, horses 0.8). LSU is now
+   recalculated from the three headcounts. Descriptive statistics, Tables 3–6
+   and the M3 results change slightly (see below).
+3. **Wild cluster bootstrap (scripts 08, 13, 18).**
+   With G = 5 the Rademacher weight space has 2⁵ = 32 elements and the Webb
+   space 6⁵ = 7,776, so exact enumeration is used (`wcb_exact()`); results no
+   longer depend on seeds or RNG packages. Ties are counted (constant weight
+   vectors reproduce the observed statistic exactly); the previous
+   `fwildclusterboot` output excluded them (strict inequality), which made
+   Rademacher p-values 2/32 too small. The strict-inequality value is still
+   reported as `P_value_strict`. Webb p-values from Monte Carlo (B = 9999) were
+   not reproducible across environments (differences up to 0.011).
+   Confidence intervals from `boottest()` are no longer reported.
+4. **Script 19 contained hand-typed numbers.** It now reads every value from
+   the result files written by scripts 07, 08, 11–13 and 16–18.
+
+Additional checks (review of 1.3.1): exact WCB p-values are now also reported
+for the control variables (`13_climate_WCB_all_coefficients.csv`,
+`18_final_WCB_all_coefficients.csv`); the diagnostic files
+`20_livestock_by_district.csv` and `diagnostic_zero_district_years.csv` are now
+regenerated by script 20 (the former was stale, computed with the old
+coefficient); the CRS of the GPS layer is verified instead of assumed.
+
+Other changes: `run_all` skips the GPS steps 01–03 when the GPS shapefiles are
+absent (they are not redistributed); scripts 14/15 no longer contain Cyrillic
+identifiers (they failed in non-UTF-8 locales); new `22_selfcheck.R`; the
+legacy CLR/placebo script was moved to `legacy/` (it is **not** part of the
+manuscript and needs a panel file that is not distributed); `fwildclusterboot`,
+`dqrng`, `ggplot2` and `modelsummary` are no longer required; a script for
+Figure 2 was added in `figures/`.
+
+## Key results (M1–M3, coefficient on RRUI)
+
+| Model | β | Cluster p | CR2 SE | CR2 df | CR2 p | WCB Rademacher p | WCB Webb p |
+|---|---|---|---|---|---|---|---|
+| M1 | −0.0184 | 0.173 | 0.0113 | 2.35 | 0.226 | 0.250 | 0.212 |
+| M2 | −0.0163 | 0.142 | 0.0106 | 2.34 | 0.248 | 0.125 | 0.109 |
+| M3 | −0.0172 | 0.176 | 0.0124 | 2.44 | 0.279 | 0.125 | 0.131 |
+
+Livestock (thousand LSU): mean 104.149, SD 40.055, min 32.554, max 214.380.
+
+## District names
+
+English labels in tables, figures and code comments follow the names of the
+UNHCR ADM2 2023 layer used for RRUI (Akzhaik, Bokey Orda, Kaztal, Zhanakala,
+Zhanybek). The source data keep their own spellings; the correspondence is in
+`data/district_crosswalk.csv` (checked by `22_selfcheck.R`):
+
+| ADM2 code | English (UNHCR) | GAUL / GEE climate | Livestock file (RU) |
+|---|---|---|---|
+| KAZ020001 | Akzhaik | Akzhaiyk | Акжаик |
+| KAZ020002 | Bokey Orda | Urda | Бокейорда |
+| KAZ020005 | Kaztal | Kaztalov | Казталов |
+| KAZ020012 | Zhanakala | Zhangala | Жанакала |
+| KAZ020013 | Zhanybek | Zhanybek | Жанибек |
 
 ## Requirements
 
-R (>= 4.0) and the packages: `zCompositions`, `compositions`, `sandwich`,
-`lmtest`, `clubSandwich`, `fixest`. All are on CRAN.
+R ≥ 4.1 (developed with 4.6.1) and: `dplyr`, `tidyr`, `tibble`, `readr`,
+`readxl`, `openxlsx`, `fixest`, `clubSandwich`; `sf` only for the GPS steps.
+`renv.lock` pins R 4.6.1 and the package set of v1.3.0. It still restores an
+environment in which v1.3.1 runs (all packages needed now are included);
+`fwildclusterboot`, `dqrng`, `ggplot2` and `modelsummary` in the lock file are
+no longer needed and can be pruned with `renv::snapshot()`.
 
-## Usage
+## Reproduction
 
 ```r
-# 1. Export the "Panel" sheet of Panel_RRUI_NDVI_Climate_Livestock_SoilMoisture_AprOct.xlsx
-#    to panel.csv (same folder as analysis.R)
-# 2. Run:
-source("analysis.R")
+source("R/99_run_all.R")   # from the project root
 ```
 
-Console output reproduces every coefficient, standard error, and p-value
-reported in Tables 3, 4, 5, 6, 8, 9, 10, 12, and 13 of the manuscript, and
-writes two diagnostic CSV files (see point 6 above).
+* With the shipped `data/processed/RRUI_2012_2024.csv` steps 04–22 run end to
+  end in a few seconds; there are no random numbers.
+* To recompute RRUI (steps 01–03) obtain the Ural saiga dataset from the Atlas
+  of Ungulate Migration (see `data/raw/gps/README.md`) and place the shapefiles
+  in `data/raw/gps/`.
+* Every run ends with `22_selfcheck.R`, which fails if, e.g., livestock units
+  do not follow the stated coefficients, CR2 df collapse to ≈ 1, or Table 7 is
+  out of sync with a fresh recomputation.
 
-## Note on cluster-robust standard errors
+## Data provenance and known limitations
 
-Point estimates and "cluster-robust" SEs/p-values (as reported in the main
-result rows of each table) use `fixest::feols` with `vcov = ~ADM2_PCODE`,
-matching the software stated in Methods, Section 2.5, and are used
-**consistently throughout the entire script**, including the delta-sensitivity
-loop. CR2 (Bell–McCaffrey) is computed separately with
-`clubSandwich::vcovCR(..., type = "CR2")`, since `fixest` does not implement
-CR2 natively. `sandwich::vcovCL` (a commonly used alternative) gives
-numerically different — and at this small cluster count (G = 5), far more
-extreme — cluster-robust SEs/p-values, and must not be mixed with the
-fixest-based numbers reported anywhere in this script or in the manuscript.
+* **RRUI** cannot be recomputed without the GPS shapefiles. Consistency checks
+  that can be run: RRUI sums to 1 per year; the number of animal-year routes
+  is 113 (`03_calculate_rrui.R`).
+* **NDVI** (`GEE/01_MOD13Q1_NDVI_MaySep.js`): MOD13Q1 v6.1, mean of the 16-day
+  composites 1 May–30 September, zonal mean at 250 m. Districts are taken from
+  the user-defined Earth Engine vector asset `5RAIONOV` (five polygons: Akzhaik,
+  Bokey Orda, Kaztal, Zhanakala, Zhanybek). The asset is private, and the
+  provider and version of its geometries were not recorded in its metadata.
+  To reproduce, upload your own five district polygons as an asset and replace
+  the asset path in the script.
+* **Climate** (`GEE/02_CHIRPS_ERA5Land_Climate_AprOct.js`): CHIRPS daily
+  precipitation (sum) and ERA5-Land monthly 2 m temperature (mean), April–
+  October, FAO GAUL 2015 level 2 geometries. The CHIRPS end date is exclusive,
+  so daily precipitation is summed for 1 April–30 October (31 October is not
+  included; see `21_period_consistency_check.R`). The shipped CSV was exported
+  this way and the manuscript states it; the one-line fix is described in the
+  script header.
+* Three different district boundary sets are used: the `5RAIONOV` asset (NDVI),
+  UNHCR ADM2 2023 (RRUI) and FAO GAUL 2015 (climate). Panel rows are matched by
+  district name and ADM2 code (`10_build_panel_climate.R`). The exact geometric
+  agreement of the three sets was not verified; this is stated as a limitation
+  in the manuscript.
+* GPS routes are stored in WGS 84 / UTM 38N (non-standard identifier). Since
+  v1.3.1 the CRS is checked (`R/helpers_gps_crs.R`): the identifier is
+  standardised only if the metadata confirm UTM zone 38N, otherwise the layer
+  is transformed; a missing CRS or implausible coordinates stop the run.
+  UTM 38N is used for the whole study area, which extends into zone 39; length
+  distortion is about 0.5 % at the eastern edge (RRUI is a ratio of lengths,
+  so the effect on the shares is negligible). District boundaries
+  (EPSG:3857) are transformed to EPSG:32638.
+* Livestock headcounts (`data/raw/livestock/`) were compiled by the authors
+  from the Bureau of National Statistics; add the exact table and access date.
 
-## Note on the wild cluster bootstrap
+## Cluster-robust inference notes
 
-WCB p-values are computed by **exact enumeration** of all possible
-cluster-weight combinations (32 for Rademacher, 7,776 for Webb at G=5), not
-Monte Carlo sampling. This is both more efficient and gives an exact rather
-than approximate p-value. A small numerical tolerance (1e-8) is used when
-comparing |t| values to correctly count the exact tie produced by the
-all-ones (or all-minus-ones) weight vector, which algebraically reproduces
-the original sample.
+* Point estimates and conventional cluster-robust SEs: `fixest::feols(...,
+  vcov = ~ADM2_PCODE)`.
+* CR2 (Bell–McCaffrey) with Satterthwaite df: `clubSandwich` on the LSDV model.
+* Do not apply `clubSandwich::vcovCR()` to a `fixest` model with absorbed fixed
+  effects (see change 1) and do not mix `sandwich::vcovCL` values with the
+  `fixest` ones.
 
+## How to cite
+
+Jumabayev, S., Kazambayeva, A., Nasyiev, B., Yessengaliyeva, S., Gumarova, K.,
+Aiesheva, G., Zhanatalapov, N., & Begeyeva, M. (2026). *Ural Saiga RRUI–NDVI
+Analysis* (Version 1.3.2) [Computer software]. Zenodo.
+https://doi.org/10.5281/zenodo.22741556
+
+Repository: https://github.com/Serik1961/Saiga_RRUI_NDVI (see also `CITATION.cff`).

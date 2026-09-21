@@ -10,11 +10,25 @@
 # 1. Scripts
 # ------------------------------------------------------------
 
+# GPS files (Atlas of Ungulate Migration) are NOT redistributed. If they are
+# absent, steps 01-03 are skipped and the shipped RRUI_2012_2024.csv is used.
+gps_available <- file.exists("data/raw/gps/Kazakhstan_Saiga_Ural_Routes.shp")
+
+if (!gps_available) {
+  message(
+    "GPS shapefiles not found in data/raw/gps: skipping 01-03 and using ",
+    "data/processed/RRUI_2012_2024.csv"
+  )
+  stopifnot(file.exists("data/processed/RRUI_2012_2024.csv"))
+}
+
 scripts <- c(
   "00_setup.R",
-  "01_gps_preprocessing.R",
-  "02_boundaries_preprocessing.R",
-  "03_calculate_rrui.R",
+  if (gps_available) c(
+    "01_gps_preprocessing.R",
+    "02_boundaries_preprocessing.R",
+    "03_calculate_rrui.R"
+  ),
   "04_ndvi_preprocessing.R",
   "05_build_panel.R",
   "06_twfe_rrui_ndvi.R",
@@ -32,7 +46,8 @@ scripts <- c(
   "18_wcb_final.R",
   "19_final_results_table.R",
   "20_final_diagnostics.R",
-  "21_period_consistency_check.R"
+  "21_period_consistency_check.R",
+  "22_selfcheck.R"
 )
 
 

@@ -1,140 +1,40 @@
 # ============================================================
-# SAIGA RRUI–NDVI PROJECT
-# 17_cr2_final.R
+# SAIGA RRUI-NDVI PROJECT
+# 17_cr2_final.R  (rewritten in v1.3.1)
 #
-# CR2 small-sample correction
-# Final TWFE model
+# Final model M3: + livestock units (thousand LSU)
+# CR2 + Satterthwaite degrees of freedom, computed on the explicit-dummy
+# (LSDV) representation of the TWFE model (see helpers_inference.R).
+# Clusters: ADM2 district (G = 5)
 # ============================================================
 
 library(dplyr)
 library(readr)
-library(fixest)
 library(clubSandwich)
 library(openxlsx)
 
+source("R/helpers_inference.R")
 
-# ------------------------------------------------------------
-# 1. Read data
-# ------------------------------------------------------------
+panel <- read_panel("data/processed/Panel_RRUI_NDVI_MaySep_Climate_AprOct_Livestock.csv")
 
-panel <- read_csv(
-  "data/processed/Panel_RRUI_NDVI_MaySep_Climate_AprOct_Livestock.csv",
-  show_col_types = FALSE
+stopifnot(
+  nrow(panel) == 65,
+  n_distinct(panel$ADM2_PCODE) == 5,
+  n_distinct(panel$Year) == 13
 )
 
+regressors <- c("RRUI", "precip_mm", "temp_c", "Livestock_units")
 
-# ------------------------------------------------------------
-# 2. Final TWFE model
-# ------------------------------------------------------------
+cr2 <- cr2_lsdv(panel, regressors)
 
-m_final <- feols(
-  NDVI ~ RRUI +
-    precip_mm +
-    temp_c +
-    Livestock_units |
-    ADM2_PCODE + Year,
-  data = panel
-)
+cat("\n===== Final model M3: + livestock units (thousand LSU): CR2 (LSDV) =====\n")
+print(cr2, digits = 5)
 
+# Sanity check: with G = 5 clusters and two-way FE the Satterthwaite df must
+# be small but clearly above 1; df ~ 1.000 signals the absorbed-FE error.
+stopifnot(all(cr2$df_Satt > 1.05))
 
-# ------------------------------------------------------------
-# 3. CR2 variance-covariance matrix
-# ------------------------------------------------------------
-
-V_CR2 <- vcovCR(
-  m_final,
-  cluster = panel$ADM2_PCODE,
-  type = "CR2"
-)
-
-
-# ------------------------------------------------------------
-# 4. Satterthwaite tests
-# ------------------------------------------------------------
-
-cr2_results <- coef_test(
-  m_final,
-  vcov = V_CR2,
-  test = "Satterthwaite"
-)
-
-
-cat("\n===== FINAL MODEL: CR2 =====\n")
-print(cr2_results)
-
-
-# ------------------------------------------------------------
-# 5. Convert to data frame
-# ------------------------------------------------------------
-
-cr2_table <- as.data.frame(
-  cr2_results
-)
-
-cr2_table$Variable <- rownames(cr2_table)
-rownames(cr2_table) <- NULL
-
-cr2_table <- cr2_table %>%
-  select(
-    Variable,
-    everything()
-  )
-
-
-cat("\n===== CR2 TABLE =====\n")
-print(cr2_table)
-
-
-# ------------------------------------------------------------
-# 6. RRUI result
-# ------------------------------------------------------------
-
-cat("\n===== RRUI CR2 =====\n")
-
-print(
-  cr2_table %>%
-    filter(Variable == "RRUI")
-)
-
-
-# ------------------------------------------------------------
-# 7. Save
-# ------------------------------------------------------------
-
-write_csv(
-  cr2_table,
-  "results/tables/17_final_CR2.csv"
-)
-
-write.xlsx(
-  cr2_table,
-  "results/tables/17_final_CR2.xlsx",
-  overwrite = TRUE
-)
-
-
-# ------------------------------------------------------------
-# 8. Verify
-# ------------------------------------------------------------
-
-cat("\n===== RESULTS SAVED =====\n")
-
-cat(
-  "CSV:",
-  file.exists(
-    "results/tables/17_final_CR2.csv"
-  ),
-  "\n"
-)
-
-cat(
-  "XLSX:",
-  file.exists(
-    "results/tables/17_final_CR2.xlsx"
-  ),
-  "\n"
-)
-
-cat(
-  "\nFinal CR2 estimation completed successfully.\n"
-)
+dir.create("results/tables", recursive = TRUE, showWarnings = FALSE)
+write_csv(cr2, "results/tables/17_final_CR2.csv")
+write.xlsx(cr2, "results/tables/17_final_CR2.xlsx", overwrite = TRUE)
+cat("\nSaved: results/tables/17_final_CR2.csv\n")

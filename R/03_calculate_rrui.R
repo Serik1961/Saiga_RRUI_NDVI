@@ -18,8 +18,9 @@ routes <- st_read(
   quiet = TRUE
 )
 
-# GPS coordinates are WGS84 / UTM zone 38N
-routes <- st_set_crs(routes, 32638)
+# GPS coordinates are WGS 84 / UTM zone 38N: the CRS is checked, not assumed
+source("R/helpers_gps_crs.R")
+routes <- standardise_route_crs(routes, 32638)
 
 
 # ------------------------------------------------------------

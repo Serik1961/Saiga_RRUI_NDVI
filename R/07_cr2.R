@@ -1,141 +1,40 @@
 # ============================================================
-# SAIGA RRUI–NDVI PROJECT
-# 07_cr2.R
+# SAIGA RRUI-NDVI PROJECT
+# 07_cr2.R  (rewritten in v1.3.1)
 #
-# Small-sample cluster-robust inference:
-# CR2 + Satterthwaite degrees of freedom
-#
-# Model:
-# NDVI_it = alpha_i + lambda_t + beta * RRUI_it + error_it
-#
+# Baseline model (M1): NDVI ~ RRUI + district FE + year FE
+# CR2 + Satterthwaite degrees of freedom, computed on the explicit-dummy
+# (LSDV) representation of the TWFE model (see helpers_inference.R).
 # Clusters: ADM2 district (G = 5)
 # ============================================================
 
-
-# ------------------------------------------------------------
-# 1. Packages
-# ------------------------------------------------------------
-
 library(dplyr)
 library(readr)
-library(fixest)
 library(clubSandwich)
+library(openxlsx)
 
+source("R/helpers_inference.R")
 
-# ------------------------------------------------------------
-# 2. Read analytical panel
-# ------------------------------------------------------------
-
-panel <- read_csv(
-  "data/processed/Panel_RRUI_NDVI_MaySep.csv",
-  show_col_types = FALSE
-) %>%
-  mutate(
-    Year = as.integer(Year),
-    ADM2_PCODE = as.character(ADM2_PCODE),
-    RRUI = as.numeric(RRUI),
-    NDVI = as.numeric(NDVI)
-  )
-
-
-# ------------------------------------------------------------
-# 3. Validate sample
-# ------------------------------------------------------------
+panel <- read_panel("data/processed/Panel_RRUI_NDVI_MaySep.csv")
 
 stopifnot(
   nrow(panel) == 65,
-  dplyr::n_distinct(panel$ADM2_PCODE) == 5,
-  dplyr::n_distinct(panel$Year) == 13,
-  !anyNA(panel$RRUI),
-  !anyNA(panel$NDVI)
+  n_distinct(panel$ADM2_PCODE) == 5,
+  n_distinct(panel$Year) == 13
 )
 
-cat("\n===== SAMPLE =====\n")
+regressors <- c("RRUI")
 
-cat("Observations:", nrow(panel), "\n")
-cat(
-  "Clusters:",
-  n_distinct(panel$ADM2_PCODE),
-  "\n"
-)
+cr2 <- cr2_lsdv(panel, regressors)
 
+cat("\n===== Baseline model (M1): NDVI ~ RRUI + district FE + year FE: CR2 (LSDV) =====\n")
+print(cr2, digits = 5)
 
-# ------------------------------------------------------------
-# 4. Estimate TWFE
-#
-# We estimate the same coefficient as before.
-# CR2 inference is calculated separately below.
-# ------------------------------------------------------------
+# Sanity check: with G = 5 clusters and two-way FE the Satterthwaite df must
+# be small but clearly above 1; df ~ 1.000 signals the absorbed-FE error.
+stopifnot(all(cr2$df_Satt > 1.05))
 
-m_twfe <- feols(
-  NDVI ~ RRUI | ADM2_PCODE + Year,
-  data = panel
-)
+dir.create("results/tables", recursive = TRUE, showWarnings = FALSE)
+write_csv(cr2, "results/tables/07_baseline_CR2.csv")
 
-
-cat("\n===== TWFE COEFFICIENT =====\n")
-
-cat(
-  "Beta RRUI:",
-  unname(coef(m_twfe)["RRUI"]),
-  "\n"
-)
-
-
-# ------------------------------------------------------------
-# 5. CR2 variance-covariance matrix
-#
-# Cluster = district
-# type = CR2
-# ------------------------------------------------------------
-
-vcov_cr2 <- vcovCR(
-  m_twfe,
-  cluster = panel$ADM2_PCODE,
-  type = "CR2"
-)
-
-
-# ------------------------------------------------------------
-# 6. CR2 coefficient test
-#
-# Satterthwaite small-sample correction
-# ------------------------------------------------------------
-
-cr2_test <- coef_test(
-  m_twfe,
-  vcov = vcov_cr2,
-  test = "Satterthwaite"
-)
-
-
-cat("\n===== CR2 RESULTS =====\n")
-
-print(cr2_test)
-
-
-# ------------------------------------------------------------
-# 7. Extract RRUI row
-# ------------------------------------------------------------
-
-cr2_rrui <- cr2_test[
-  rownames(cr2_test) == "RRUI",
-  ,
-  drop = FALSE
-]
-
-
-cat("\n===== RRUI CR2 =====\n")
-
-print(cr2_rrui)
-
-
-# ------------------------------------------------------------
-# 8. Basic validation
-# ------------------------------------------------------------
-
-stopifnot(
-  nrow(cr2_rrui) == 1
-)
-
-cat("\nCR2 estimation completed successfully.\n")
+cat("\nSaved: results/tables/07_baseline_CR2.csv\n")

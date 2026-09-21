@@ -1,55 +1,20 @@
 # ============================================================
-# SAIGA RRUI–NDVI PROJECT
-# 13_wcb_climate.R
+# SAIGA RRUI-NDVI PROJECT
+# 13_wcb_climate.R  (rewritten in v1.3.1)
 #
-# Wild Cluster Bootstrap
-# Climate-controlled TWFE
-#
-# Rademacher + Webb weights
+# Model M2 (+ climate)
+# Restricted wild cluster bootstrap, EXACT enumeration
+# (Rademacher 2^5 = 32 draws; Webb 6^5 = 7,776 draws). Deterministic:
+# no seeds, no Monte Carlo error. See helpers_inference.R for the tie rule.
 # ============================================================
-
-
-# ------------------------------------------------------------
-# 1. Packages
-# ------------------------------------------------------------
 
 library(dplyr)
 library(readr)
-library(fixest)
-library(fwildclusterboot)
-library(dqrng)
 library(openxlsx)
 
+source("R/helpers_inference.R")
 
-# ------------------------------------------------------------
-# 2. Reproducibility
-# ------------------------------------------------------------
-
-set.seed(12345)
-dqrng::dqset.seed(12345)
-
-
-# ------------------------------------------------------------
-# 3. Read panel
-# ------------------------------------------------------------
-
-panel <- read_csv(
-  "data/processed/Panel_RRUI_NDVI_MaySep_Climate_AprOct.csv",
-  show_col_types = FALSE
-) %>%
-  mutate(
-    Year = as.integer(Year),
-    ADM2_PCODE = as.character(ADM2_PCODE),
-    RRUI = as.numeric(RRUI),
-    NDVI = as.numeric(NDVI),
-    precip_mm = as.numeric(precip_mm),
-    temp_c = as.numeric(temp_c)
-  )
-
-
-# ------------------------------------------------------------
-# 4. Validate sample
-# ------------------------------------------------------------
+panel <- read_panel("data/processed/Panel_RRUI_NDVI_MaySep_Climate_AprOct.csv")
 
 stopifnot(
   nrow(panel) == 65,
@@ -57,196 +22,26 @@ stopifnot(
   n_distinct(panel$Year) == 13
 )
 
-cat("\n===== SAMPLE =====\n")
-cat("Observations:", nrow(panel), "\n")
-cat("Clusters:", n_distinct(panel$ADM2_PCODE), "\n")
+wcb <- wcb_exact(panel, c("RRUI", "precip_mm", "temp_c"))
 
+cat("\n===== Model M2 (+ climate): exact WCB =====\n")
+print(wcb, digits = 5)
 
-# ------------------------------------------------------------
-# 5. Reference absorbed-FE model
-# ------------------------------------------------------------
+# Structural checks: constant weight vectors tie with the observed statistic
+# (2 for Rademacher, 6 for Webb).
+stopifnot(wcb$N_draws[1] == 32, wcb$N_draws[2] == 7776, wcb$N_ties == c(2, 6))
 
-m_reference <- feols(
-  NDVI ~ RRUI + precip_mm + temp_c |
-    ADM2_PCODE + Year,
-  data = panel
-)
+dir.create("results/tables", recursive = TRUE, showWarnings = FALSE)
+write_csv(wcb, "results/tables/13_climate_WCB.csv")
+write.xlsx(wcb, "results/tables/13_climate_WCB.xlsx", overwrite = TRUE)
 
-beta_reference <- unname(
-  coef(m_reference)["RRUI"]
-)
+# Exact WCB for every coefficient of the model (v1.3.1)
+vars_all <- c("RRUI", "precip_mm", "temp_c")
+wcb_all <- dplyr::bind_rows(lapply(vars_all, function(v) {
+  cbind(Variable = v, wcb_exact(panel, vars_all, test_var = v))
+}))
+cat("\n===== exact WCB, all coefficients =====\n")
+print(wcb_all, digits = 4)
+write_csv(wcb_all, "results/tables/13_climate_WCB_all_coefficients.csv")
 
-
-# ------------------------------------------------------------
-# 6. Equivalent explicit-dummy model
-#    for boottest compatibility
-# ------------------------------------------------------------
-
-m_wcb <- feols(
-  NDVI ~
-    RRUI +
-    precip_mm +
-    temp_c +
-    factor(ADM2_PCODE) +
-    factor(Year),
-  data = panel
-)
-
-beta_dummy <- unname(
-  coef(m_wcb)["RRUI"]
-)
-
-
-cat("\n===== MODEL EQUIVALENCE =====\n")
-
-cat(
-  "Reference beta:",
-  beta_reference,
-  "\n"
-)
-
-cat(
-  "Explicit-dummy beta:",
-  beta_dummy,
-  "\n"
-)
-
-cat(
-  "Difference:",
-  beta_dummy - beta_reference,
-  "\n"
-)
-
-stopifnot(
-  abs(beta_dummy - beta_reference) < 1e-10
-)
-
-cat("Coefficient equivalence confirmed.\n")
-
-
-# ------------------------------------------------------------
-# 7. Rademacher WCB
-# ------------------------------------------------------------
-
-set.seed(12345)
-dqrng::dqset.seed(12345)
-
-wcb_rademacher <- boottest(
-  m_wcb,
-  clustid = "ADM2_PCODE",
-  param = "RRUI",
-  B = 9999,
-  type = "rademacher",
-  impose_null = TRUE
-)
-
-
-cat("\n===== WCB RADEMACHER =====\n")
-print(wcb_rademacher)
-
-
-# ------------------------------------------------------------
-# 8. Webb WCB
-# ------------------------------------------------------------
-
-set.seed(12345)
-dqrng::dqset.seed(12345)
-
-wcb_webb <- boottest(
-  m_wcb,
-  clustid = "ADM2_PCODE",
-  param = "RRUI",
-  B = 9999,
-  type = "webb",
-  impose_null = TRUE
-)
-
-
-cat("\n===== WCB WEBB =====\n")
-print(wcb_webb)
-
-
-# ------------------------------------------------------------
-# 9. Collect results
-# ------------------------------------------------------------
-
-wcb_results <- data.frame(
-  Method = c(
-    "WCB Rademacher",
-    "WCB Webb"
-  ),
-  
-  Beta_RRUI = c(
-    beta_reference,
-    beta_reference
-  ),
-  
-  Test_statistic = c(
-    wcb_rademacher$t_stat,
-    wcb_webb$t_stat
-  ),
-  
-  P_value = c(
-    wcb_rademacher$p_val,
-    wcb_webb$p_val
-  ),
-  
-  CI_low = c(
-    wcb_rademacher$conf_int[1],
-    wcb_webb$conf_int[1]
-  ),
-  
-  CI_high = c(
-    wcb_rademacher$conf_int[2],
-    wcb_webb$conf_int[2]
-  )
-)
-
-
-cat("\n===== WCB SUMMARY =====\n")
-print(wcb_results)
-
-
-# ------------------------------------------------------------
-# 10. Save results
-# ------------------------------------------------------------
-
-dir.create(
-  "results/tables",
-  recursive = TRUE,
-  showWarnings = FALSE
-)
-
-write_csv(
-  wcb_results,
-  "results/tables/13_climate_WCB.csv"
-)
-
-write.xlsx(
-  wcb_results,
-  "results/tables/13_climate_WCB.xlsx",
-  overwrite = TRUE
-)
-
-
-# ------------------------------------------------------------
-# 11. Verify saved files
-# ------------------------------------------------------------
-
-cat("\n===== RESULTS SAVED =====\n")
-
-cat(
-  "CSV:",
-  file.exists("results/tables/13_climate_WCB.csv"),
-  "\n"
-)
-
-cat(
-  "XLSX:",
-  file.exists("results/tables/13_climate_WCB.xlsx"),
-  "\n"
-)
-
-cat(
-  "\nClimate Wild Cluster Bootstrap completed successfully.\n"
-)
+cat("\nSaved: results/tables/13_climate_WCB.csv\n")

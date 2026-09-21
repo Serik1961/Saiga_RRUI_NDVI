@@ -9,8 +9,15 @@
 //
 // Output:
 // 1) District × year NDVI panel (CSV)
-// 2) NDVI GeoTIFF rasters for 2016, 2018 and 2024
-// ============================================================
+// 2) NDVI GeoTIFF rasters for 2016, 2018, 2020 and 2024
+//    (Figure 2 of the manuscript uses 2016, 2020 and 2024; 2018 is not used)
+//
+// NOTE: the district layer below is the user-defined vector asset 5RAIONOV
+// (five polygons: Akzhaik, Bokey Orda, Kaztal, Zhanakala, Zhanybek). It is
+// private; the provider and version of its geometries were not recorded in
+// the asset metadata, and its exact agreement with UNHCR ADM2 2023 and FAO
+// GAUL 2015 was not verified (stated as a limitation in the manuscript).
+// To reproduce, upload your own district polygons and replace the asset path.
 
 
 // ============================================================
