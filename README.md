@@ -159,6 +159,6 @@ source("R/99_run_all.R")   # from the project root
 Jumabayev, S., Kazambayeva, A., Nasyiev, B., Yessengaliyeva, S., Gumarova, K.,
 Aiesheva, G., Zhanatalapov, N., & Begeyeva, M. (2026). *Ural Saiga RRUI–NDVI
 Analysis* (Version 1.3.2) [Computer software]. Zenodo.
-https://doi.org/10.5281/zenodo.22741556
+https://10.5281/zenodo.22884083
 
 Repository: https://github.com/Serik1961/Saiga_RRUI_NDVI (see also `CITATION.cff`).
