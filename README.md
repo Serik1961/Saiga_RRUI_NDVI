@@ -11,6 +11,9 @@ Maintenance release after an independent check of 1.3.1 (a clean run of
 `data.frame` warning in `wcb_exact()` was removed, the CHIRPS day count in the
 GEE note was corrected (213 of 214 days), and the projection-distortion
 estimate and the citation metadata were made more precise. No result changes.
+The documentation also now explicitly records that the original MOD13Q1
+processing did not apply a pixel-level QA mask; this is a clarification of the
+existing workflow, not a change to the distributed NDVI values.
 
 ## What changed in 1.3.1 (corrections to 1.3.0)
 
@@ -90,10 +93,25 @@ Zhanybek). The source data keep their own spellings; the correspondence is in
 
 R ≥ 4.1 (developed with 4.6.1) and: `dplyr`, `tidyr`, `tibble`, `readr`,
 `readxl`, `openxlsx`, `fixest`, `clubSandwich`; `sf` only for the GPS steps.
-`renv.lock` pins R 4.6.1 and the package set of v1.3.0. It still restores an
-environment in which v1.3.1 runs (all packages needed now are included);
-`fwildclusterboot`, `dqrng`, `ggplot2` and `modelsummary` in the lock file are
-no longer needed and can be pruned with `renv::snapshot()`.
+`renv.lock` records R 4.6.1 and the package environment used for the analysis.
+Some packages listed in `logs/sessionInfo.txt` were loaded in the recorded
+session but are no longer required by the current 01–22 analysis pipeline.
+
+The recorded software environment (`logs/sessionInfo.txt`) includes:
+
+| Software/package | Version | Role |
+|---|---:|---|
+| R | 4.6.1 | analysis environment |
+| renv | 1.2.4 | dependency management |
+| fixest | 0.14.2 | TWFE estimation and conventional clustered inference |
+| clubSandwich | 0.7.0 | CR2/Satterthwaite inference |
+| sf | 1.1-2 | spatial preprocessing and CRS transformation |
+| dplyr | 1.2.1 | data processing |
+| tidyr | 1.3.2 | data reshaping |
+| readr | 2.2.0 | CSV input/output |
+| readxl | 1.5.0 | Excel input |
+| openxlsx | 4.2.8.1 | Excel output |
+| ggplot2 | 4.0.3 | loaded in the recorded session; not required by the current pipeline |
 
 ## Reproduction
 
@@ -115,20 +133,32 @@ source("R/99_run_all.R")   # from the project root
 * **RRUI** cannot be recomputed without the GPS shapefiles. Consistency checks
   that can be run: RRUI sums to 1 per year; the number of animal-year routes
   is 113 (`03_calculate_rrui.R`).
-* **NDVI** (`GEE/01_MOD13Q1_NDVI_MaySep.js`): MOD13Q1 v6.1, mean of the 16-day
-  composites 1 May–30 September, zonal mean at 250 m. Districts are taken from
-  the user-defined Earth Engine vector asset `5RAIONOV` (five polygons: Akzhaik,
-  Bokey Orda, Kaztal, Zhanakala, Zhanybek). The asset is private, and the
-  provider and version of its geometries were not recorded in its metadata.
-  To reproduce, upload your own five district polygons as an asset and replace
-  the asset path in the script.
-* **Climate** (`GEE/02_CHIRPS_ERA5Land_Climate_AprOct.js`): CHIRPS daily
-  precipitation (sum) and ERA5-Land monthly 2 m temperature (mean), April–
-  October, FAO GAUL 2015 level 2 geometries. The CHIRPS end date is exclusive,
-  so daily precipitation is summed for 1 April–30 October (31 October is not
-  included; see `21_period_consistency_check.R`). The shipped CSV was exported
-  this way and the manuscript states it; the one-line fix is described in the
-  script header.
+* **NDVI** (`GEE/01_MOD13Q1_NDVI_MaySep.js`): Earth Engine collection
+  `MODIS/061/MOD13Q1` (MOD13Q1 v6.1), mean of the 16-day composites from 1 May
+  through 30 September. NDVI is multiplied by the product scale factor 0.0001.
+  District-level values are arithmetic zonal means calculated with
+  `reduceRegions()`, `ee.Reducer.mean()` and `scale: 250` m. The original
+  processing did **not** apply a pixel-level mask based on the `SummaryQA` or
+  `DetailedQA` bands. The reported NDVI values therefore average all available
+  composites in the seasonal window after scaling. This is a limitation of the
+  original analysis and must not be described as completed QA filtering.
+  Districts are taken from the private user-defined Earth Engine vector asset
+  `projects/powerful-host-499406-d6/assets/5RAIONOV` (five polygons: Akzhaik,
+  Bokey Orda, Kaztal, Zhanakala and Zhanybek). The provider and version of its
+  geometries were not recorded in the asset metadata. To reproduce, upload
+  five district polygons and replace the asset path in the script.
+* **Climate** (`GEE/02_CHIRPS_ERA5Land_Climate_AprOct.js`): precipitation is
+  obtained from `UCSB-CHG/CHIRPS/DAILY`, temperature from
+  `ECMWF/ERA5_LAND/MONTHLY_AGGR`, and district geometries from
+  `FAO/GAUL/2015/level2`. CHIRPS daily precipitation is summed and ERA5-Land
+  monthly 2 m temperature is averaged for April–October. The Earth Engine end
+  date is exclusive, so daily precipitation is summed for 1 April–30 October
+  (31 October is not included; see `21_period_consistency_check.R`). The shipped
+  CSV was exported this way and the manuscript states it.
+* **Access dates:** the exact original Earth Engine export dates and the access
+  date for the distributed livestock workbook were not preserved in the source
+  metadata. They must not be reconstructed from the repository publication
+  date. This missing provenance is reported as a documentation limitation.
 * Three different district boundary sets are used: the `5RAIONOV` asset (NDVI),
   UNHCR ADM2 2023 (RRUI) and FAO GAUL 2015 (climate). Panel rows are matched by
   district name and ADM2 code (`10_build_panel_climate.R`). The exact geometric
@@ -141,9 +171,13 @@ source("R/99_run_all.R")   # from the project root
   UTM 38N is used for the whole study area, which extends into zone 39; length
   distortion is about 0.5 % at the eastern edge (RRUI is a ratio of lengths,
   so the effect on the shares is negligible). District boundaries
-  (EPSG:3857) are transformed to EPSG:32638.
+  (EPSG:3857) are transformed to WGS 84 / UTM zone 38N (EPSG:32638) for metric
+  calculations. Maps produced by `figures/fig2_ndvi_routes.py` are displayed in
+  WGS 84 geographic coordinates (EPSG:4326).
 * Livestock headcounts (`data/raw/livestock/`) were compiled by the authors
-  from the Bureau of National Statistics; add the exact table and access date.
+  from the Bureau of National Statistics of Kazakhstan. The exact source table
+  identifier and original access date were not retained with the workbook and
+  are therefore reported as unavailable rather than inferred retrospectively.
 
 ## Cluster-robust inference notes
 
@@ -159,6 +193,6 @@ source("R/99_run_all.R")   # from the project root
 Jumabayev, S., Kazambayeva, A., Nasyiev, B., Yessengaliyeva, S., Gumarova, K.,
 Aiesheva, G., Zhanatalapov, N., & Begeyeva, M. (2026). *Ural Saiga RRUI–NDVI
 Analysis* (Version 1.3.2) [Computer software]. Zenodo.
-https://10.5281/zenodo.22884083
+https://doi.org/10.5281/zenodo.22884083
 
 Repository: https://github.com/Serik1961/Saiga_RRUI_NDVI (see also `CITATION.cff`).

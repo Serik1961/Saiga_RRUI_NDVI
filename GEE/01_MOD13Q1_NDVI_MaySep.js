@@ -7,6 +7,13 @@
 // Growing season: 1 May – 30 September (inclusive)
 // Study period: 2012–2024
 //
+// QUALITY-CONTROL NOTE:
+// The original analysis did not apply a pixel-level mask based on the
+// SummaryQA or DetailedQA bands. This script intentionally reproduces the
+// NDVI values used in the manuscript by averaging all available NDVI
+// composites in the seasonal window. The absence of a QA mask is documented
+// as a limitation and must not be described as completed QA filtering.
+//
 // Output:
 // 1) District × year NDVI panel (CSV)
 // 2) NDVI GeoTIFF rasters for 2016, 2018, 2020 and 2024
